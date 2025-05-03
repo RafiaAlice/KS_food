@@ -1,0 +1,8 @@
+flask
+faiss-cpu
+spacy
+transformers
+sentence-transformers
+torch
+scikit-learn
+gunicorn
