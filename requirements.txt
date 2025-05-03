@@ -5,4 +5,9 @@ transformers
 sentence-transformers
 torch
 scikit-learn
+<<<<<<< HEAD
 gunicorn
+=======
+gunicorn
+
+>>>>>>> d612625
