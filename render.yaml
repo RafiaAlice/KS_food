@@ -2,9 +2,9 @@ services:
   - type: web
     name: kansas-food-pantry
     env: python
+    plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
+    startCommand: gunicorn main:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.9
-    plan: free
