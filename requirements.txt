@@ -1,13 +1,8 @@
-flask
-faiss-cpu
-spacy
-transformers
-sentence-transformers
-torch
-scikit-learn
-<<<<<<< HEAD
-gunicorn
-=======
-gunicorn
-
->>>>>>> d612625
+flask==2.3.3
+gunicorn==21.2.0
+faiss-cpu==1.7.4
+spacy==3.6.0
+torch==2.2.2
+sentence-transformers==2.2.2
+transformers==4.40.0
+scikit-learn==1.4.2

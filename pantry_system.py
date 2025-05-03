@@ -176,7 +176,4 @@ class PantrySearchSystem:
         results = self.retr.retrieve(query, intents, entities, self.last_results)
         self.last_results = results
         return self.generator.generate(query, intents, entities, results)
-<<<<<<< HEAD
-=======
 
->>>>>>> d612625
