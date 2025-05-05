@@ -1,7 +1,6 @@
-import os
 from flask import Flask, request, jsonify
+import traceback, sys
 from pantry_system import PantrySearchSystem
-import traceback
 
 app = Flask(__name__)
 system = None
@@ -9,11 +8,11 @@ system = None
 def get_system():
     global system
     if system is None:
-        system = PantrySearchSystem("pantry_data.json")
+        system = PantrySearchSystem("pantry_data.json")  
     return system
 
-@app.route("/health")
-def health():
+@app.route("/health", methods=["GET"])
+def health_check():
     return jsonify({"status": "ok"})
 
 @app.route("/chat", methods=["POST"])
@@ -24,9 +23,8 @@ def chat():
         response = get_system().process(query_text)
         return jsonify({"response": response})
     except Exception as e:
-        print(traceback.format_exc())
+        print(traceback.format_exc(), file=sys.stderr, flush=True)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=8080)
