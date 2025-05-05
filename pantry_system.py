@@ -13,7 +13,7 @@ class DataLoader:
         self.file_path = file_path
         self.raw_data = self._load_data()
         self.data = self._normalize_data()
-        self.encoder = SentenceTransformer('paraphrase-MiniLM-L3-v2')  # Eager load for compatibility
+        self.encoder = SentenceTransformer('paraphrase-MiniLM-L3-v2')  # Eager load
         self._load_or_precompute_embeddings()
         print(f"Loaded {len(self.data)} pantry entries.")
 
@@ -26,10 +26,11 @@ class DataLoader:
     def _normalize_data(self) -> List[Dict]:
         normalized = []
         for entry in self.raw_data:
+            county_clean = entry.get('county', '').replace(", Kansas", "").strip().title()
             norm = {
                 'name': entry.get('pantry_name', 'Unknown').title().strip(),
                 'address': entry.get('address', '').strip(),
-                'county': entry.get('county', '').title(),
+                'county': county_clean,
                 'city': self._extract_city(entry.get('address', '')),
                 'phone': entry.get('phone', 'Not available'),
                 'requirements': entry.get('tags', []),
@@ -129,8 +130,10 @@ class HybridRetriever:
         for ent in doc.ents:
             if ent.label_ == 'GPE':
                 txt = ent.text
-                if 'county' in txt.lower(): f['county'] = txt.replace('County', '').strip()
-                else: f.setdefault('city', txt)
+                if 'county' in txt.lower():
+                    f['county'] = txt.replace('County', '').strip().title()
+                else:
+                    f.setdefault('city', txt.title())
         return f
 
     def _match(self, p, intents, f):
@@ -176,4 +179,3 @@ class PantrySearchSystem:
         results = self.retr.retrieve(query, intents, entities, self.last_results)
         self.last_results = results
         return self.generator.generate(query, intents, entities, results)
-
