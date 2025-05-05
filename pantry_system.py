@@ -142,25 +142,37 @@ class HybridRetriever:
         return True
 
 # --- 4. ResponseGenerator ---
+
+from transformers import AutoTokenizer, AutoModelForCausalLM
+
 class ResponseGenerator:
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-small")
-        self.model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
+        self.tokenizer = AutoTokenizer.from_pretrained("/models/tinyllama")
+        self.model = AutoModelForCausalLM.from_pretrained("/models/tinyllama")
 
     def generate(self, query, intents, entities, results):
         if 'followup' in intents and len(results) == 1:
             p = results[0]
-            return f"Here are the details for {p['name']}:\nAddress: {p['address']}\nPhone: {p['phone']}\nHours: {p['raw_hours']}\nLink: {p['link']}"
+            return f"Here are the details for {p['name']}:
+Address: {p['address']}
+Phone: {p['phone']}
+Hours: {p['raw_hours']}
+Link: {p['link']}"
+
         if not results:
             return "No pantries found."
-        prompt = "List these food pantries in a helpful format:\n"
+
+        prompt = "List these food pantries in a helpful format:
+"
         for p in results:
-            prompt += f"- {p['name']}, {p['address']}, {p['raw_hours']}, Phone: {p['phone']}\n"
-        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, padding=True)
-        outputs = self.model.generate(**inputs, max_length=200, num_beams=5, early_stopping=True)
+            prompt += f"- {p['name']}, {p['address']}, {p['raw_hours']}, Phone: {p['phone']}
+"
+
+        inputs = self.tokenizer(prompt, return_tensors="pt")
+        outputs = self.model.generate(**inputs, max_new_tokens=150, do_sample=True, temperature=0.7)
         return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-# --- 5. PantrySearchSystem ---
+
 class PantrySearchSystem:
     def __init__(self, file_path):
         self.loader = DataLoader(file_path)

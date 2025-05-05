@@ -1,9 +1,6 @@
 flask
-gunicorn
 faiss-cpu
-spacy
-torch
 sentence-transformers
 transformers
-scikit-learn
-numpy<2
+torch
+gunicorn
