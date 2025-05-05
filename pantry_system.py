@@ -5,7 +5,7 @@ import numpy as np
 import faiss
 import spacy
 from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
 
 # --- 1. DataLoader ---
 class DataLoader:
@@ -142,9 +142,6 @@ class HybridRetriever:
         return True
 
 # --- 4. ResponseGenerator ---
-
-from transformers import AutoTokenizer, AutoModelForCausalLM
-
 class ResponseGenerator:
     def __init__(self):
         self.tokenizer = AutoTokenizer.from_pretrained("/models/tinyllama")
@@ -153,26 +150,24 @@ class ResponseGenerator:
     def generate(self, query, intents, entities, results):
         if 'followup' in intents and len(results) == 1:
             p = results[0]
-            return f"Here are the details for {p['name']}:
+            return f"""Here are the details for {p['name']}:
 Address: {p['address']}
 Phone: {p['phone']}
 Hours: {p['raw_hours']}
-Link: {p['link']}"
+Link: {p['link']}"""
 
         if not results:
             return "No pantries found."
 
-        prompt = "List these food pantries in a helpful format:
-"
+        prompt = "List these food pantries in a helpful format:\n"
         for p in results:
-            prompt += f"- {p['name']}, {p['address']}, {p['raw_hours']}, Phone: {p['phone']}
-"
+            prompt += f"- {p['name']}, {p['address']}, {p['raw_hours']}, Phone: {p['phone']}\n"
 
         inputs = self.tokenizer(prompt, return_tensors="pt")
         outputs = self.model.generate(**inputs, max_new_tokens=150, do_sample=True, temperature=0.7)
         return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-
+# --- 5. PantrySearchSystem ---
 class PantrySearchSystem:
     def __init__(self, file_path):
         self.loader = DataLoader(file_path)
