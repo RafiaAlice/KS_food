@@ -18,7 +18,7 @@ def health():
 def chat():
     data = request.get_json()
     query = data.get("text", "")
-    response = get_system().process(query)
+    intent_type, response = get_system().process(query)
     return jsonify({"response": response})
 
 if __name__ == "__main__":
