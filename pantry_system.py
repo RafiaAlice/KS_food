@@ -13,9 +13,8 @@ class DataLoader:
         self.file_path = file_path
         self.raw_data = self._load_data()
         self.data = self._normalize_data()
-        self.encoder = SentenceTransformer('paraphrase-MiniLM-L3-v2')  # Eager load
-        self._load_or_precompute_embeddings()
-        print(f"Loaded {len(self.data)} pantry entries.")
+        self.encoder = SentenceTransformer('paraphrase-MiniLM-L3-v2')
+        self.embeddings_loaded = False  # Lazy embedding flag
 
     def _load_data(self) -> List[Dict]:
         if not os.path.exists(self.file_path):
@@ -45,19 +44,21 @@ class DataLoader:
         parts = address.split(',')
         return parts[-2].strip().title() if len(parts) >= 2 else 'Unknown'
 
-    def _load_or_precompute_embeddings(self):
+    def maybe_compute_embeddings(self):
+        if self.embeddings_loaded:
+            return
         if os.path.exists("embeddings.npy"):
             embeddings = np.load("embeddings.npy")
-            for i, d in enumerate(self.data):
-                d['embedding'] = embeddings[i]
         else:
             embeddings = []
             for d in self.data:
                 text = f"{d['name']} {d['city']} {d['county']} {d['raw_hours']} {' '.join(d['requirements'])}"
                 embeddings.append(self.encoder.encode(text).astype('float32'))
             np.save("embeddings.npy", embeddings)
-            for i, d in enumerate(self.data):
-                d['embedding'] = embeddings[i]
+
+        for i, d in enumerate(self.data):
+            d['embedding'] = embeddings[i]
+        self.embeddings_loaded = True
 
 # --- 2. IntentClassifier ---
 class IntentClassifier:
@@ -101,10 +102,11 @@ class HybridRetriever:
         self.data = loader.data
         self.loader = loader
         self.index = None
-        self._build_index()
         self.nlp = spacy.load('en_core_web_sm', disable=["ner", "parser"])
+        self._build_index()
 
     def _build_index(self):
+        self.loader.maybe_compute_embeddings()
         embed = np.vstack([d['embedding'] for d in self.data])
         quantizer = faiss.IndexFlatL2(embed.shape[1])
         self.index = faiss.IndexIVFPQ(quantizer, embed.shape[1], 16, 8)
@@ -112,6 +114,7 @@ class HybridRetriever:
         self.index.add(embed)
 
     def retrieve(self, query: str, intents: List[str], entities: Dict, last_results: List[Dict] = None) -> List[Dict]:
+        self.loader.maybe_compute_embeddings()
         if 'followup' in intents and 'pantry_name' in entities:
             return [p for p in last_results if p['name'] == entities['pantry_name']]
 
