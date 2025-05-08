@@ -175,7 +175,7 @@ class PantrySearchSystem:
     def __init__(self, file_path):
         self.loader = DataLoader(file_path)
         self.intenter = IntentClassifier(self.loader)
-        self.retr = HybridRetriever(self.loader)
+        self.retr = None
         self.generator = ResponseGenerator()
         self.last_results = []
         self.last_interaction_time = datetime.now()
@@ -186,6 +186,6 @@ class PantrySearchSystem:
             return "Your session has expired. Please start a new query."
         self.last_interaction_time = datetime.now()
         intents, entities = self.intenter.detect_intents_and_entities(query)
-        results = self.retr.retrieve(query, intents, entities, self.last_results)
+        results = self._get_retriever().retrieve(query, intents, entities, self.last_results)
         self.last_results = results
         return self.generator.generate(query, intents, entities, results)
