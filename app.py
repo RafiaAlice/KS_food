@@ -15,12 +15,14 @@ def get_system():
 def chat():
     try:
         data = request.get_json()
+        print("Received:", data)  # 🧪 Debug
         query = data.get("text", "")
         response = get_system().process(query)
         return jsonify({"response": response})
     except Exception as e:
         print("ERROR during /chat:", traceback.format_exc())  # log full stack trace
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/health")
 def health():
