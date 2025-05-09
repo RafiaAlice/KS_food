@@ -185,7 +185,7 @@ class PantrySearchSystem:
         self.loader = DataLoader(file_path)
         print("🔹 Loading TinyLlama shared tokenizer and model...")
         from huggingface_hub import snapshot_download
-        model_dir = snapshot_download("TinyLlama/TinyLlama-1.1B-Chat-v1.0", local_dir="/models/tinyllama", local_dir_use_symlinks=False)
+        model_dir = snapshot_download("TinyLlama/TinyLlama-1.1B-Chat-v1.0", local_dir="models/tinyllama", local_dir_use_symlinks=False)
         tokenizer = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
         model = AutoModelForCausalLM.from_pretrained(
             model_dir,
