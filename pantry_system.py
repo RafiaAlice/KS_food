@@ -180,12 +180,17 @@ class PantrySearchSystem:
         self.last_results = []
         self.last_interaction_time = datetime.now()
 
+
     def process(self, query: str) -> str:
-        if datetime.now() - self.last_interaction_time > timedelta(minutes=15):
-            self.last_results = []
-            return "Your session has expired. Please start a new query."
-        self.last_interaction_time = datetime.now()
-        intents, entities = self.intenter.detect_intents_and_entities(query)
-        results = self._get_retriever().retrieve(query, intents, entities, self.last_results)
-        self.last_results = results
-        return self.generator.generate(query, intents, entities, results)
+    print("🔍 Processing query:", query)
+    intents, entities = self.intent_classifier.detect_intents_and_entities(query)
+    print("✅ Intents:", intents)
+    print("✅ Entities:", entities)
+    results = self.retriever.retrieve(query, intents, entities, self.last_results)
+    print("📦 Retrieved results:", results)
+    response = self.generator.generate(query, intents, entities, results)
+    print("🗣️ Final response:", response)
+    self.last_results = results
+    return response
+
+
