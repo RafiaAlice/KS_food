@@ -5,7 +5,8 @@ import numpy as np
 import faiss
 import spacy
 from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 
 # --- 1. DataLoader ---
 class DataLoader:
@@ -62,36 +63,55 @@ class DataLoader:
 
 # --- 2. IntentClassifier ---
 class IntentClassifier:
-    def __init__(self, loader: DataLoader):
-        self.loader = loader
-        self.tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-        self.model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=14)
+    def __init__(self):
+        hf_token = os.getenv("HF_TOKEN")
+        self.tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+            token=hf_token,
+            torch_dtype=torch.float32,
+            low_cpu_mem_usage=True
+        )
         self.labels = [
-            "county", "city", "zipcode", "hours", "student_only", "no_id", "tefap",
-            "proof_of_residency", "mobile", "contact", "seniors", "appointment",
-            "multi_day_plan", "followup"
+            "Find Pantry by County",
+            "Find Pantry by City or Town",
+            "Find Pantry by Open Hours",
+            "Find Student-Only Pantry",
+            "Find Pantry with No ID Required",
+            "Find TEFAP Site Pantry",
+            "Find Pantry Requiring Proof of Residency",
+            "Find Mobile Pantry",
+            "Find Pantry Contact Information",
+            "Find Pantry for Seniors",
+            "Find Pantry by Appointment Requirement",
+            "Find Pantry by Zipcode",
+            "Multi-Day Plan",
+            "Follow-Up"
         ]
 
     def detect_intents_and_entities(self, query: str) -> Tuple[List[str], Dict]:
-        inputs = self.tokenizer(query, return_tensors="pt", truncation=True, padding=True)
-        outputs = self.model(**inputs)
-        logits = outputs.logits
-        probabilities = logits.softmax(dim=-1).detach().numpy()[0]
-        intents = [self.labels[i] for i, prob in enumerate(probabilities) if prob > 0.5]
-        entities = self._extract_entities(query)
-        return intents, entities
+        prompt = f"""You are an expert assistant helping detect user intents for a food pantry search system in Kansas.
 
-    def _extract_entities(self, query: str) -> Dict:
+Given a user's message, identify one or more relevant intents from the following list:
+{self.labels}
+
+Return your answer as a Python list.
+
+User: {query}
+Answer:"""
+        inputs = self.tokenizer(prompt, return_tensors="pt")
+        outputs = self.model.generate(**inputs, max_new_tokens=100)
+        text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        try:
+            intents = eval(text.split("Answer:")[-1].strip())
+        except:
+            intents = []
+
         entities = {}
-        zipcodes = re.findall(r"\b\d{5}\b", query)
+        zipcodes = re.findall(r"\\b\\d{5}\\b", query)
         if zipcodes:
             entities["zipcode"] = zipcodes[0]
-        pantry_names = [entry['name'] for entry in self.loader.data]
-        for name in pantry_names:
-            if name.lower() in query.lower():
-                entities["pantry_name"] = name
-                break
-        return entities
+        return intents, entities
 
 # --- 3. HybridRetriever ---
 class HybridRetriever:
@@ -110,7 +130,7 @@ class HybridRetriever:
 
     def retrieve(self, query: str, intents: List[str], entities: Dict, last_results: List[Dict] = None) -> List[Dict]:
         self.loader.maybe_compute_embeddings()
-        if 'followup' in intents and 'pantry_name' in entities:
+        if 'Follow-Up' in intents and 'pantry_name' in entities:
             return [p for p in last_results if p['name'] == entities['pantry_name']]
 
         filters = self._geo_filter(query, entities)
@@ -139,7 +159,6 @@ class HybridRetriever:
         if 'city' in f and f['city'].lower() not in p['city'].lower(): return False
         return True
 
-
 # --- 4. ResponseGenerator ---
 class ResponseGenerator:
     def __init__(self):
@@ -147,13 +166,16 @@ class ResponseGenerator:
         print("Loading TinyLlama tokenizer...")
         self.tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
         print("Loading TinyLlama model...")
-        self.model = AutoModelForCausalLM.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+            token=hf_token,
+            torch_dtype=torch.float32,
+            low_cpu_mem_usage=True
+        )
         print("TinyLlama loaded successfully.")
 
-    
-
     def generate(self, query, intents, entities, results):
-        if 'followup' in intents and len(results) == 1:
+        if 'Follow-Up' in intents and len(results) == 1:
             p = results[0]
             return f"""Here are the details for {p['name']}:
 Address: {p['address']}
@@ -176,7 +198,7 @@ Link: {p['link']}"""
 class PantrySearchSystem:
     def __init__(self, file_path):
         self.loader = DataLoader(file_path)
-        self.intenter = IntentClassifier(self.loader)
+        self.intenter = IntentClassifier()
         self.retr = None
         self.generator = ResponseGenerator()
         self.last_results = []
