@@ -109,9 +109,9 @@ class HybridRetriever:
         self.loader.maybe_compute_embeddings()
         embed = np.vstack([d['embedding'] for d in self.data])
         quantizer = faiss.IndexFlatL2(embed.shape[1])
-        self.index = faiss.IndexIVFPQ(quantizer, embed.shape[1], 16, 8)
-        self.index.train(embed)
+        self.index = faiss.IndexFlatL2(embed.shape[1])
         self.index.add(embed)
+
 
     def retrieve(self, query: str, intents: List[str], entities: Dict, last_results: List[Dict] = None) -> List[Dict]:
         self.loader.maybe_compute_embeddings()
