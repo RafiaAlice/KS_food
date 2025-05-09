@@ -63,15 +63,9 @@ class DataLoader:
 
 # --- 2. IntentClassifier ---
 class IntentClassifier:
-    def __init__(self):
-        hf_token = os.getenv("HF_TOKEN")
-        self.tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-            token=hf_token,
-            torch_dtype=torch.float32,
-            low_cpu_mem_usage=True
-        )
+    def __init__(self, tokenizer, model):
+        self.tokenizer = tokenizer
+        self.model = model
         self.labels = [
             "Find Pantry by County",
             "Find Pantry by City or Town",
@@ -161,18 +155,9 @@ class HybridRetriever:
 
 # --- 4. ResponseGenerator ---
 class ResponseGenerator:
-    def __init__(self):
-        hf_token = os.getenv("HF_TOKEN")
-        print("Loading TinyLlama tokenizer...")
-        self.tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
-        print("Loading TinyLlama model...")
-        self.model = AutoModelForCausalLM.from_pretrained(
-            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-            token=hf_token,
-            torch_dtype=torch.float32,
-            low_cpu_mem_usage=True
-        )
-        print("TinyLlama loaded successfully.")
+    def __init__(self, tokenizer, model):
+        self.tokenizer = tokenizer
+        self.model = model
 
     def generate(self, query, intents, entities, results):
         if 'Follow-Up' in intents and len(results) == 1:
@@ -198,9 +183,19 @@ Link: {p['link']}"""
 class PantrySearchSystem:
     def __init__(self, file_path):
         self.loader = DataLoader(file_path)
-        self.intenter = IntentClassifier()
+        hf_token = os.getenv("HF_TOKEN")
+        print("🔹 Loading TinyLlama shared tokenizer and model...")
+        tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
+        model = AutoModelForCausalLM.from_pretrained(
+            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+            token=hf_token,
+            torch_dtype=torch.float32,
+            low_cpu_mem_usage=True
+        )
+        print("🔹 TinyLlama loaded once and shared.")
+        self.intenter = IntentClassifier(tokenizer, model)
         self.retr = None
-        self.generator = ResponseGenerator()
+        self.generator = ResponseGenerator(tokenizer, model)
         self.last_results = []
         self.last_interaction_time = datetime.now()
 
