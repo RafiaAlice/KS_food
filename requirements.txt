@@ -2,8 +2,8 @@ flask
 gunicorn
 faiss-cpu
 sentence-transformers
-transformers
-torch
+transformers>=4.36
+torch>=2.0
 spacy
 numpy
 requests

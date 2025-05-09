@@ -139,12 +139,18 @@ class HybridRetriever:
         if 'city' in f and f['city'].lower() not in p['city'].lower(): return False
         return True
 
+
 # --- 4. ResponseGenerator ---
 class ResponseGenerator:
     def __init__(self):
         hf_token = os.getenv("HF_TOKEN")
+        print("Loading TinyLlama tokenizer...")
         self.tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
+        print("Loading TinyLlama model...")
         self.model = AutoModelForCausalLM.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
+        print("TinyLlama loaded successfully.")
+
+    
 
     def generate(self, query, intents, entities, results):
         if 'followup' in intents and len(results) == 1:
