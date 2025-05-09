@@ -2,7 +2,7 @@ services:
   - type: web
     name: kansas-food-pantry
     env: python
-    plan: starter
+    plan: standard
     buildCommand: |
       pip install -r requirements.txt
       python -m spacy download en_core_web_sm
