@@ -113,7 +113,15 @@ class HybridRetriever:
         self.data = loader.data
         self.loader = loader
         self.index = None
-        self.nlp = spacy.load('en_core_web_sm', disable=["ner", "parser"])
+
+        try:
+            self.nlp = spacy.load('en_core_web_sm', disable=["ner", "parser"])
+        except OSError:
+            from spacy.cli import download
+            print("🔄 en_core_web_sm not found. Downloading...")
+            download("en_core_web_sm")
+            self.nlp = spacy.load('en_core_web_sm', disable=["ner", "parser"])
+
         self._build_index()
 
     def _build_index(self):
@@ -136,8 +144,11 @@ class HybridRetriever:
 
     def _geo_filter(self, query, entities):
         f = {}
-        if 'county' in entities: f['county'] = entities['county']
-        if 'city' in entities: f['city'] = entities['city']
+        if 'county' in entities:
+            f['county'] = entities['county']
+        if 'city' in entities:
+            f['city'] = entities['city']
+
         doc = self.nlp(query)
         for ent in doc.ents:
             if ent.label_ == 'GPE':
@@ -149,8 +160,10 @@ class HybridRetriever:
         return f
 
     def _match(self, p, intents, f):
-        if 'county' in f and f['county'].lower() not in p['county'].lower(): return False
-        if 'city' in f and f['city'].lower() not in p['city'].lower(): return False
+        if 'county' in f and f['county'].lower() not in p['county'].lower():
+            return False
+        if 'city' in f and f['city'].lower() not in p['city'].lower():
+            return False
         return True
 
 # --- 4. ResponseGenerator using Colab API ---
@@ -169,7 +182,7 @@ class ResponseGenerator:
             response = requests.post(self.colab_url, json=payload, timeout=60)
             return response.json().get("response", "No response from Colab.")
         except Exception as e:
-            print(f"❌ Colab API error: {e}")
+            print(f"Colab API error: {e}")
             return "Sorry, there was an error generating the response."
 
 # --- 5. PantrySearchSystem ---
