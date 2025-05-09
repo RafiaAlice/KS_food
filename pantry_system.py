@@ -78,7 +78,6 @@ class IntentClassifier:
         logits = outputs.logits
         probabilities = logits.softmax(dim=-1).detach().numpy()[0]
         intents = [self.labels[i] for i, prob in enumerate(probabilities) if prob > 0.5]
-
         entities = self._extract_entities(query)
         return intents, entities
 
@@ -87,13 +86,11 @@ class IntentClassifier:
         zipcodes = re.findall(r"\b\d{5}\b", query)
         if zipcodes:
             entities["zipcode"] = zipcodes[0]
-
         pantry_names = [entry['name'] for entry in self.loader.data]
         for name in pantry_names:
             if name.lower() in query.lower():
                 entities["pantry_name"] = name
                 break
-
         return entities
 
 # --- 3. HybridRetriever ---
@@ -108,10 +105,8 @@ class HybridRetriever:
     def _build_index(self):
         self.loader.maybe_compute_embeddings()
         embed = np.vstack([d['embedding'] for d in self.data])
-        quantizer = faiss.IndexFlatL2(embed.shape[1])
         self.index = faiss.IndexFlatL2(embed.shape[1])
         self.index.add(embed)
-
 
     def retrieve(self, query: str, intents: List[str], entities: Dict, last_results: List[Dict] = None) -> List[Dict]:
         self.loader.maybe_compute_embeddings()
@@ -140,17 +135,16 @@ class HybridRetriever:
         return f
 
     def _match(self, p, intents, f):
-        if 'county' in f and f['county'].lower() not in p['county'].lower():
-            return False
-        if 'city' in f and f['city'].lower() not in p['city'].lower():
-            return False
+        if 'county' in f and f['county'].lower() not in p['county'].lower(): return False
+        if 'city' in f and f['city'].lower() not in p['city'].lower(): return False
         return True
 
 # --- 4. ResponseGenerator ---
 class ResponseGenerator:
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained("/models/tinyllama")
-        self.model = AutoModelForCausalLM.from_pretrained("/models/tinyllama")
+        hf_token = os.getenv("HF_TOKEN")
+        self.tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
+        self.model = AutoModelForCausalLM.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
 
     def generate(self, query, intents, entities, results):
         if 'followup' in intents and len(results) == 1:

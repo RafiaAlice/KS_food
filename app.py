@@ -11,20 +11,22 @@ def get_system():
         system = PantrySearchSystem("pantry_data.json")  # Confirm this file exists!
     return system
 
+
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
         print("🔹 /chat endpoint hit")
-        data = request.get_json()
+        data = request.get_json(force=True)
         print(f"🔹 Received data: {data}")
         query_text = data.get("text", "")
-        print(f"🔹 Query text: {query_text}")
+        if not query_text:
+            return jsonify({"error": "No query text provided"}), 400
         response = get_system().process(query_text)
-        print(f"🔹 Response: {response}")
         return jsonify({"response": response})
     except Exception as e:
         print("❌ Error in /chat:", traceback.format_exc())
         return jsonify({"error": str(e)}), 500
+
 
 
 
