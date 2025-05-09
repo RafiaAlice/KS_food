@@ -9,7 +9,8 @@ services:
       pip install -r requirements.txt
       python -m pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0.tar.gz
   
-    startCommand: gunicorn -c gunicorn_config.py app:app
+    startCommand: gunicorn app:app --bind 0.0.0.0:10000
+
     envVars:
       - key: PYTHON_VERSION
         value: 3.9
