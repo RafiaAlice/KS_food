@@ -1,4 +1,4 @@
-# Use slim base image
+# Use a slim base image
 FROM python:3.9-slim
 
 # Set working directory
@@ -9,26 +9,26 @@ RUN apt-get update && apt-get install -y \
     git build-essential curl python3-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Python packages
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Spacy model explicitly
-RUN python -m spacy download en_core_web_sm
+# Install spaCy model properly via pip
+RUN python -m pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0.tar.gz
 
-# Install HF CLI (if needed)
+# Optionally install Hugging Face CLI
 RUN pip install huggingface_hub
 
-# Copy app code
+# Copy the application code
 COPY . .
 
-# Environment config
+# Environment variables
 ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
 ENV HF_HOME=/app/.cache/huggingface
 ENV TOKENIZERS_PARALLELISM=false
 
-# Expose default port
+# Expose the app port
 EXPOSE 8080
 
-# Run the app
+# Start Flask with Gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
