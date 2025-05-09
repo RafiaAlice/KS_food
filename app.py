@@ -14,14 +14,19 @@ def get_system():
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
+        print("🔹 /chat endpoint hit")
         data = request.get_json()
-        print("Received:", data)  # 🧪 Debug
-        query = data.get("text", "")
-        response = get_system().process(query)
+        print(f"🔹 Received data: {data}")
+        query_text = data.get("text", "")
+        print(f"🔹 Query text: {query_text}")
+        response = get_system().process(query_text)
+        print(f"🔹 Response: {response}")
         return jsonify({"response": response})
     except Exception as e:
-        print("ERROR during /chat:", traceback.format_exc())  # log full stack trace
+        print("❌ Error in /chat:", traceback.format_exc())
         return jsonify({"error": str(e)}), 500
+
+
 
 
 @app.route("/health")
