@@ -4,6 +4,7 @@ services:
     env: python
     plan: pro  
     buildCommand: |
+      apt-get update && apt-get install -y gcc build-essential  
       pip install --upgrade pip
       pip install -r requirements.txt
       python -m spacy download en_core_web_sm
