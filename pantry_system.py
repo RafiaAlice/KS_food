@@ -183,14 +183,22 @@ class PantrySearchSystem:
 
     def process(self, query: str) -> str:
     print("🔍 Processing query:", query)
-    intents, entities = self.intent_classifier.detect_intents_and_entities(query)
+    intents, entities = self.intenter.detect_intents_and_entities(query)
     print("✅ Intents:", intents)
     print("✅ Entities:", entities)
-    results = self.retriever.retrieve(query, intents, entities, self.last_results)
+
+    if self.retr is None:
+        self.retr = HybridRetriever(self.loader)
+    results = self.retr.retrieve(query, intents, entities, self.last_results)
     print("📦 Retrieved results:", results)
+
     response = self.generator.generate(query, intents, entities, results)
     print("🗣️ Final response:", response)
+
     self.last_results = results
     return response
+
+
+    
 
 
