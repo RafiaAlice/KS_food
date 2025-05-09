@@ -1,12 +1,12 @@
-from datetime import datetime, timedelta
-import os, re, json, time
+from datetime import datetime
+import os, re, json
 from typing import List, Dict, Tuple
 import numpy as np
 import faiss
 import spacy
+import requests
 from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModelForCausalLM
-import torch
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 # --- 1. DataLoader ---
 class DataLoader:
@@ -153,50 +153,35 @@ class HybridRetriever:
         if 'city' in f and f['city'].lower() not in p['city'].lower(): return False
         return True
 
-# --- 4. ResponseGenerator ---
+# --- 4. ResponseGenerator using Colab API ---
 class ResponseGenerator:
-    def __init__(self, tokenizer, model):
-        self.tokenizer = tokenizer
-        self.model = model
+    def __init__(self, colab_url: str):
+        self.colab_url = colab_url
 
     def generate(self, query, intents, entities, results):
-        if 'Follow-Up' in intents and len(results) == 1:
-            p = results[0]
-            return f"""Here are the details for {p['name']}:
-Address: {p['address']}
-Phone: {p['phone']}
-Hours: {p['raw_hours']}
-Link: {p['link']}"""
-
-        if not results:
-            return "No pantries found."
-
-        prompt = "List these food pantries in a helpful format:\n"
-        for p in results:
-            prompt += f"- {p['name']}, {p['address']}, {p['raw_hours']}, Phone: {p['phone']}\n"
-
-        inputs = self.tokenizer(prompt, return_tensors="pt")
-        outputs = self.model.generate(**inputs, max_new_tokens=150, do_sample=True, temperature=0.7)
-        return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        payload = {
+            "query": query,
+            "intents": intents,
+            "entities": entities,
+            "results": results
+        }
+        try:
+            response = requests.post(self.colab_url, json=payload, timeout=60)
+            return response.json().get("response", "No response from Colab.")
+        except Exception as e:
+            print(f"❌ Colab API error: {e}")
+            return "Sorry, there was an error generating the response."
 
 # --- 5. PantrySearchSystem ---
 class PantrySearchSystem:
     def __init__(self, file_path):
         self.loader = DataLoader(file_path)
-        print("🔹 Loading TinyLlama shared tokenizer and model...")
-        from huggingface_hub import snapshot_download
-        model_dir = snapshot_download("TinyLlama/TinyLlama-1.1B-Chat-v1.0", local_dir="models/tinyllama", local_dir_use_symlinks=False)
-        tokenizer = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
-        model = AutoModelForCausalLM.from_pretrained(
-            model_dir,
-            local_files_only=True,
-            torch_dtype=torch.float32,
-            low_cpu_mem_usage=True
-        )
-        print("🔹 TinyLlama loaded once and shared.")
+        print("🔹 Loading Flan-T5 for intent classification...")
+        tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-small")
+        model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
         self.intenter = IntentClassifier(tokenizer, model)
         self.retr = None
-        self.generator = ResponseGenerator(tokenizer, model)
+        self.generator = ResponseGenerator(colab_url="https://1216-34-83-84-240.ngrok-free.app/generate")
         self.last_results = []
         self.last_interaction_time = datetime.now()
 
