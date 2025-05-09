@@ -7,3 +7,4 @@ torch>=2.0
 spacy
 numpy
 requests
+huggingface_hub

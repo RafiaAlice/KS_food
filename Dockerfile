@@ -4,21 +4,21 @@ FROM python:3.9-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies and git-lfs
-RUN apt-get update && apt-get install -y git git-lfs build-essential && \
-    git lfs install
+# Install system dependencies
+RUN apt-get update && apt-get install -y git build-essential && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies (from requirements.txt)
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download TinyLlama model locally (instead of loading from HF every time)
-RUN git clone https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0 /models/tinyllama
+# Install Hugging Face CLI to support snapshot_download
+RUN pip install huggingface_hub
 
-# Copy application code after model is installed
+# Copy your application code
 COPY . .
 
-# Optional: set huggingface cache to prevent re-downloading other models
+# Environment setup
 ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
 ENV HF_HOME=/app/.cache/huggingface
 ENV TOKENIZERS_PARALLELISM=false

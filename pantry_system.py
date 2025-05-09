@@ -102,7 +102,7 @@ Answer:"""
             intents = []
 
         entities = {}
-        zipcodes = re.findall(r"\\b\\d{5}\\b", query)
+        zipcodes = re.findall(r"\b\d{5}\b", query)
         if zipcodes:
             entities["zipcode"] = zipcodes[0]
         return intents, entities
@@ -184,9 +184,12 @@ class PantrySearchSystem:
     def __init__(self, file_path):
         self.loader = DataLoader(file_path)
         print("🔹 Loading TinyLlama shared tokenizer and model...")
-        tokenizer = AutoTokenizer.from_pretrained("/models/tinyllama")
+        from huggingface_hub import snapshot_download
+        model_dir = snapshot_download("TinyLlama/TinyLlama-1.1B-Chat-v1.0", local_dir="/models/tinyllama", local_dir_use_symlinks=False)
+        tokenizer = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
         model = AutoModelForCausalLM.from_pretrained(
-            "/models/tinyllama",
+            model_dir,
+            local_files_only=True,
             torch_dtype=torch.float32,
             low_cpu_mem_usage=True
         )

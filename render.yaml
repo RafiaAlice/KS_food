@@ -12,5 +12,4 @@ services:
       - key: PYTHON_VERSION
         value: 3.9
       - key: HF_TOKEN
-        value: false
-
+        sync: false 
