@@ -14,7 +14,7 @@ class DataLoader:
         self.raw_data = self._load_data()
         self.data = self._normalize_data()
         self.encoder = SentenceTransformer('paraphrase-MiniLM-L3-v2')
-        self.embeddings_loaded = False  # Lazy embedding flag
+        self.embeddings_loaded = False
 
     def _load_data(self) -> List[Dict]:
         if not os.path.exists(self.file_path):
@@ -140,8 +140,10 @@ class HybridRetriever:
         return f
 
     def _match(self, p, intents, f):
-        if 'county' in f and f['county'].lower() not in p['county'].lower(): return False
-        if 'city' in f and f['city'].lower() not in p['city'].lower(): return False
+        if 'county' in f and f['county'].lower() not in p['county'].lower():
+            return False
+        if 'city' in f and f['city'].lower() not in p['city'].lower():
+            return False
         return True
 
 # --- 4. ResponseGenerator ---
@@ -180,25 +182,20 @@ class PantrySearchSystem:
         self.last_results = []
         self.last_interaction_time = datetime.now()
 
-
     def process(self, query: str) -> str:
-    print("🔍 Processing query:", query)
-    intents, entities = self.intenter.detect_intents_and_entities(query)
-    print("✅ Intents:", intents)
-    print("✅ Entities:", entities)
+        print("Processing query:", query)
+        intents, entities = self.intenter.detect_intents_and_entities(query)
+        print("Intents:", intents)
+        print("Entities:", entities)
 
-    if self.retr is None:
-        self.retr = HybridRetriever(self.loader)
-    results = self.retr.retrieve(query, intents, entities, self.last_results)
-    print("📦 Retrieved results:", results)
+        if self.retr is None:
+            self.retr = HybridRetriever(self.loader)
 
-    response = self.generator.generate(query, intents, entities, results)
-    print("🗣️ Final response:", response)
+        results = self.retr.retrieve(query, intents, entities, self.last_results)
+        print("Retrieved results:", results)
 
-    self.last_results = results
-    return response
+        response = self.generator.generate(query, intents, entities, results)
+        print("Final response:", response)
 
-
-    
-
-
+        self.last_results = results
+        return response
