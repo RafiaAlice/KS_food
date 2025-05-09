@@ -183,12 +183,10 @@ Link: {p['link']}"""
 class PantrySearchSystem:
     def __init__(self, file_path):
         self.loader = DataLoader(file_path)
-        hf_token = os.getenv("HF_TOKEN")
         print("🔹 Loading TinyLlama shared tokenizer and model...")
-        tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0", token=hf_token)
+        tokenizer = AutoTokenizer.from_pretrained("/models/tinyllama")
         model = AutoModelForCausalLM.from_pretrained(
-            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-            token=hf_token,
+            "/models/tinyllama",
             torch_dtype=torch.float32,
             low_cpu_mem_usage=True
         )
